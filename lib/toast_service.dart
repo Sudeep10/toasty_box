@@ -2,8 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import 'toast_enums.dart';
 import 'custom_toast.dart';
+import 'toast_enums.dart';
 import 'toast_manager.dart';
 
 class ToastService {
@@ -17,17 +17,22 @@ class ToastService {
   static int? _showToastNumber;
 
   static void showToastNumber(int val) {
-    assert(val > 0,
-        "Show toast number can't be negative or zero. Default show toast number is 5.");
+    assert(
+      val > 0,
+      "Show toast number can't be negative or zero. Default show toast number is 5.",
+    );
     if (val > 0) {
       _showToastNumber = val;
     }
   }
 
-  static void _reverseAnimation(int index) {
+  static Future<void> _reverseAnimation({
+    required int index,
+    bool instant = false,
+  }) async {
     if (_overlayIndexList.contains(index)) {
-      _animationControllers[index]?.reverse().then((_) async {
-        await Future.delayed(const Duration(milliseconds: 50));
+      await _animationControllers[index]?.reverse().then((_) async {
+        await Future.delayed(Duration(milliseconds: instant ? 0 : 50));
         _removeOverlayEntry(index);
       });
     }
@@ -85,7 +90,7 @@ class ToastService {
   }
 
   static double _calculateOpacity(int index) {
-    int noOfShowToast = _showToastNumber ?? 5;
+    final int noOfShowToast = _showToastNumber ?? 5;
     if (_overlayIndexList.length <= noOfShowToast) return 1;
     final isFirstFiveToast = _overlayIndexList
         .sublist(_overlayIndexList.length - noOfShowToast)
@@ -112,28 +117,33 @@ class ToastService {
         return const Duration(milliseconds: 5000);
       case ToastLength.ages:
         return const Duration(minutes: 2);
-      default:
-        return const Duration(hours: 24);
+      case ToastLength.never:
+        return const Duration(days: 1);
     }
   }
 
-  static Future<void> _showToast(BuildContext context,
-      {String? message,
-      TextStyle? messageStyle,
-      Widget? leading,
-      Widget? child,
-      bool isClosable = false,
-      double expandedHeight = 100,
-      Color? backgroundColor,
-      Color? shadowColor,
-      Curve? slideCurve,
-      Curve positionCurve = Curves.elasticOut,
-      ToastLength length = ToastLength.short,
-      DismissDirection dismissDirection = DismissDirection.down,
-      bool onTapAnimation = true,
-      bool closeOnTap = false}) async {
-    assert(expandedHeight >= 0.0,
-        "Expanded height should not be a negative number!");
+  static Future<void> _showToast(
+    BuildContext context, {
+    String? message,
+    TextStyle? messageStyle,
+    Widget? leading,
+    Widget? child,
+    bool isClosable = false,
+    double expandedHeight = 100,
+    Color? backgroundColor,
+    Color? shadowColor,
+    Curve? slideCurve,
+    Curve positionCurve = Curves.elasticOut,
+    ToastLength length = ToastLength.short,
+    DismissDirection dismissDirection = DismissDirection.down,
+    bool onTapAnimation = true,
+    bool closeOnTap = false,
+    bool closeOnTapAnimation = false,
+  }) async {
+    assert(
+      expandedHeight >= 0.0,
+      'Expanded height should not be a negative number!',
+    );
     if (context.mounted) {
       _overlayState = Overlay.of(context);
       final controller = AnimationController(
@@ -142,7 +152,7 @@ class ToastService {
         reverseDuration: const Duration(milliseconds: 1000),
       );
       _animationControllers.add(controller);
-      int controllerIndex = _animationControllers.indexOf(controller);
+      final int controllerIndex = _animationControllers.indexOf(controller);
       _addOverlayPosition(controllerIndex);
       final overlayEntry = OverlayEntry(
         builder: (context) => AnimatedPositioned(
@@ -166,7 +176,7 @@ class ToastService {
               padding: EdgeInsets.symmetric(
                 horizontal: (_expandedIndex.value == controllerIndex
                     ? 10
-                    : max(_calculatePosition(controllerIndex) - 35, 0.0)),
+                    : max(_calculatePosition(controllerIndex) - 35, 0)),
               ),
               duration: const Duration(milliseconds: 500),
               curve: positionCurve,
@@ -181,23 +191,31 @@ class ToastService {
                   curve: slideCurve,
                   isClosable: isClosable,
                   isInFront: _isToastInFront(
-                      _animationControllers.indexOf(controller)),
+                    _animationControllers.indexOf(controller),
+                  ),
                   controller: controller,
-                  onTap: () => closeOnTap
-                      ? {
-                          _removeOverlayEntry(
-                              _animationControllers.indexOf(controller)),
-                          _updateOverlayPositions(
-                            isReverse: true,
-                            pos: _animationControllers.indexOf(controller),
-                          )
-                        }
+                  onTap: () async => closeOnTap
+                      ? closeOnTapAnimation
+                          ? await _reverseAnimation(
+                              index: _animationControllers.indexOf(controller),
+                              instant: true,
+                            )
+                          : {
+                              _removeOverlayEntry(
+                                _animationControllers.indexOf(controller),
+                              ),
+                              _updateOverlayPositions(
+                                isReverse: true,
+                                pos: _animationControllers.indexOf(controller),
+                              ),
+                            }
                       : onTapAnimation
                           ? _toggleExpand(controllerIndex)
                           : null,
                   onClose: () {
                     _removeOverlayEntry(
-                        _animationControllers.indexOf(controller));
+                      _animationControllers.indexOf(controller),
+                    );
                     _updateOverlayPositions(
                       isReverse: true,
                       pos: _animationControllers.indexOf(controller),
@@ -215,37 +233,43 @@ class ToastService {
       _updateOverlayPositions();
       _forwardAnimation(_animationControllers.indexOf(controller));
       await Future.delayed(_toastDuration(length));
-      _reverseAnimation(_animationControllers.indexOf(controller));
+      await _reverseAnimation(index: _animationControllers.indexOf(controller));
     }
   }
 
-  static Future<void> showToast(BuildContext context,
-      {String? message,
-      TextStyle? messageStyle,
-      Widget? leading,
-      bool isClosable = false,
-      double expandedHeight = 100,
-      Color? backgroundColor,
-      Color? shadowColor,
-      Curve? slideCurve,
-      Curve positionCurve = Curves.elasticOut,
-      ToastLength length = ToastLength.short,
-      DismissDirection dismissDirection = DismissDirection.down,
-      bool onTapAnimation = true,
-      bool closeOnTap = false}) async {
-    _showToast(context,
-        message: message,
-        messageStyle: messageStyle,
-        isClosable: isClosable,
-        expandedHeight: expandedHeight,
-        backgroundColor: backgroundColor,
-        shadowColor: shadowColor,
-        positionCurve: positionCurve,
-        length: length,
-        dismissDirection: dismissDirection,
-        leading: leading,
-        onTapAnimation: onTapAnimation,
-        closeOnTap: closeOnTap);
+  static Future<void> showToast(
+    BuildContext context, {
+    String? message,
+    TextStyle? messageStyle,
+    Widget? leading,
+    bool isClosable = false,
+    double expandedHeight = 100,
+    Color? backgroundColor,
+    Color? shadowColor,
+    Curve? slideCurve,
+    Curve positionCurve = Curves.elasticOut,
+    ToastLength length = ToastLength.short,
+    DismissDirection dismissDirection = DismissDirection.down,
+    bool onTapAnimation = true,
+    bool closeOnTap = false,
+    bool closeOnTapAnimation = false,
+  }) async {
+    await _showToast(
+      context,
+      message: message,
+      messageStyle: messageStyle,
+      isClosable: isClosable,
+      expandedHeight: expandedHeight,
+      backgroundColor: backgroundColor,
+      shadowColor: shadowColor,
+      positionCurve: positionCurve,
+      length: length,
+      dismissDirection: dismissDirection,
+      leading: leading,
+      onTapAnimation: onTapAnimation,
+      closeOnTap: closeOnTap,
+      closeOnTapAnimation: closeOnTapAnimation,
+    );
   }
 
   static Future<void> showWidgetToast(
@@ -259,8 +283,11 @@ class ToastService {
     Curve positionCurve = Curves.elasticOut,
     ToastLength length = ToastLength.short,
     DismissDirection dismissDirection = DismissDirection.down,
+    bool onTapAnimation = true,
+    bool closeOnTap = false,
+    bool closeOnTapAnimation = false,
   }) async {
-    _showToast(
+    await _showToast(
       context,
       isClosable: isClosable,
       expandedHeight: expandedHeight,
@@ -269,6 +296,9 @@ class ToastService {
       positionCurve: positionCurve,
       length: length,
       dismissDirection: dismissDirection,
+      onTapAnimation: onTapAnimation,
+      closeOnTap: closeOnTap,
+      closeOnTapAnimation: closeOnTapAnimation,
       child: child,
     );
   }
@@ -286,8 +316,11 @@ class ToastService {
     Curve positionCurve = Curves.elasticOut,
     ToastLength length = ToastLength.short,
     DismissDirection dismissDirection = DismissDirection.down,
+    bool onTapAnimation = true,
+    bool closeOnTap = false,
+    bool closeOnTapAnimation = false,
   }) async {
-    _showToast(
+    await _showToast(
       context,
       message: message,
       messageStyle: const TextStyle(
@@ -305,6 +338,9 @@ class ToastService {
             Icons.check_circle,
             color: Colors.white,
           ),
+      onTapAnimation: onTapAnimation,
+      closeOnTap: closeOnTap,
+      closeOnTapAnimation: closeOnTapAnimation,
       child: child,
     );
   }
@@ -321,8 +357,11 @@ class ToastService {
     Curve positionCurve = Curves.elasticOut,
     ToastLength length = ToastLength.short,
     DismissDirection dismissDirection = DismissDirection.down,
+    bool onTapAnimation = true,
+    bool closeOnTap = false,
+    bool closeOnTapAnimation = false,
   }) async {
-    _showToast(
+    await _showToast(
       context,
       message: message,
       messageStyle: const TextStyle(
@@ -339,6 +378,9 @@ class ToastService {
         Icons.error,
         color: Colors.white,
       ),
+      onTapAnimation: onTapAnimation,
+      closeOnTap: closeOnTap,
+      closeOnTapAnimation: closeOnTapAnimation,
       child: child,
     );
   }
@@ -355,8 +397,11 @@ class ToastService {
     Curve positionCurve = Curves.elasticOut,
     ToastLength length = ToastLength.short,
     DismissDirection dismissDirection = DismissDirection.down,
+    bool onTapAnimation = true,
+    bool closeOnTap = false,
+    bool closeOnTapAnimation = false,
   }) async {
-    _showToast(
+    await _showToast(
       context,
       message: message,
       messageStyle: const TextStyle(
@@ -373,6 +418,9 @@ class ToastService {
         Icons.warning,
         color: Colors.white,
       ),
+      onTapAnimation: onTapAnimation,
+      closeOnTap: closeOnTap,
+      closeOnTapAnimation: closeOnTapAnimation,
       child: child,
     );
   }

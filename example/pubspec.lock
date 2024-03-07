@@ -199,6 +199,14 @@ packages:
       relative: true
     source: path
     version: "1.0.3"
+  total_lints:
+    dependency: transitive
+    description:
+      name: total_lints
+      sha256: "9445878634afa9987f6deb61cc6713d1d3cd7a9cf9e4390109e634d7dbcd1119"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.0"
   vector_math:
     dependency: transitive
     description:
@@ -216,5 +224,5 @@ packages:
     source: hosted
     version: "13.0.0"
 sdks:
-  dart: ">=3.2.0-0 <4.0.0"
+  dart: ">=3.2.0 <4.0.0"
   flutter: ">=1.17.0"
