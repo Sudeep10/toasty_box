@@ -9,14 +9,14 @@ class CustomToast extends StatefulWidget {
   final Color? shadowColor;
   final AnimationController? controller;
   final bool isInFront;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final VoidCallback? onClose;
   final Curve? curve;
   final bool? isClosable;
   const CustomToast({
     super.key,
     this.isInFront = false,
-    required this.onTap,
+    this.onTap,
     this.onClose,
     this.message,
     this.messageStyle,

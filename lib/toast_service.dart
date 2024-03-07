@@ -117,21 +117,21 @@ class ToastService {
     }
   }
 
-  static Future<void> _showToast(
-    BuildContext context, {
-    String? message,
-    TextStyle? messageStyle,
-    Widget? leading,
-    Widget? child,
-    bool isClosable = false,
-    double expandedHeight = 100,
-    Color? backgroundColor,
-    Color? shadowColor,
-    Curve? slideCurve,
-    Curve positionCurve = Curves.elasticOut,
-    ToastLength length = ToastLength.short,
-    DismissDirection dismissDirection = DismissDirection.down,
-  }) async {
+  static Future<void> _showToast(BuildContext context,
+      {String? message,
+      TextStyle? messageStyle,
+      Widget? leading,
+      Widget? child,
+      bool isClosable = false,
+      double expandedHeight = 100,
+      Color? backgroundColor,
+      Color? shadowColor,
+      Curve? slideCurve,
+      Curve positionCurve = Curves.elasticOut,
+      ToastLength length = ToastLength.short,
+      DismissDirection dismissDirection = DismissDirection.down,
+      bool onTapAnimation = true,
+      bool closeOnTap = false}) async {
     assert(expandedHeight >= 0.0,
         "Expanded height should not be a negative number!");
     if (context.mounted) {
@@ -183,7 +183,18 @@ class ToastService {
                   isInFront: _isToastInFront(
                       _animationControllers.indexOf(controller)),
                   controller: controller,
-                  onTap: () => _toggleExpand(controllerIndex),
+                  onTap: () => closeOnTap
+                      ? {
+                          _removeOverlayEntry(
+                              _animationControllers.indexOf(controller)),
+                          _updateOverlayPositions(
+                            isReverse: true,
+                            pos: _animationControllers.indexOf(controller),
+                          )
+                        }
+                      : onTapAnimation
+                          ? _toggleExpand(controllerIndex)
+                          : null,
                   onClose: () {
                     _removeOverlayEntry(
                         _animationControllers.indexOf(controller));
@@ -208,33 +219,33 @@ class ToastService {
     }
   }
 
-  static Future<void> showToast(
-    BuildContext context, {
-    String? message,
-    TextStyle? messageStyle,
-    Widget? leading,
-    bool isClosable = false,
-    double expandedHeight = 100,
-    Color? backgroundColor,
-    Color? shadowColor,
-    Curve? slideCurve,
-    Curve positionCurve = Curves.elasticOut,
-    ToastLength length = ToastLength.short,
-    DismissDirection dismissDirection = DismissDirection.down,
-  }) async {
-    _showToast(
-      context,
-      message: message,
-      messageStyle: messageStyle,
-      isClosable: isClosable,
-      expandedHeight: expandedHeight,
-      backgroundColor: backgroundColor,
-      shadowColor: shadowColor,
-      positionCurve: positionCurve,
-      length: length,
-      dismissDirection: dismissDirection,
-      leading: leading,
-    );
+  static Future<void> showToast(BuildContext context,
+      {String? message,
+      TextStyle? messageStyle,
+      Widget? leading,
+      bool isClosable = false,
+      double expandedHeight = 100,
+      Color? backgroundColor,
+      Color? shadowColor,
+      Curve? slideCurve,
+      Curve positionCurve = Curves.elasticOut,
+      ToastLength length = ToastLength.short,
+      DismissDirection dismissDirection = DismissDirection.down,
+      bool onTapAnimation = true,
+      bool closeOnTap = false}) async {
+    _showToast(context,
+        message: message,
+        messageStyle: messageStyle,
+        isClosable: isClosable,
+        expandedHeight: expandedHeight,
+        backgroundColor: backgroundColor,
+        shadowColor: shadowColor,
+        positionCurve: positionCurve,
+        length: length,
+        dismissDirection: dismissDirection,
+        leading: leading,
+        onTapAnimation: onTapAnimation,
+        closeOnTap: closeOnTap);
   }
 
   static Future<void> showWidgetToast(
